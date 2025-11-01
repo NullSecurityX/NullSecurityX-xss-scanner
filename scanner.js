@@ -2,7 +2,7 @@
 (function() {
     console.log('NullSecurity XSS Scanner loaded!');
     
-    // TÜM XSS Payloadları (öncekiler + yeni)
+    // TÜM XSS Payloadları
     const xssPayloads = [
         // Basic Script Tags
         '<script>alert(1)</script>',
@@ -348,7 +348,7 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            width: 750px;
+            width: 700px;
             background: #0d1117;
             color: #f0f6fc;
             padding: 20px;
@@ -376,10 +376,10 @@
             <div style="margin-bottom:20px;background:#161b22;padding:15px;border-radius:8px;">
                 <label style="display:block;margin-bottom:8px;color:#58a6ff;font-weight:bold;">Test Modu:</label>
                 <select id="testMode" style="width:100%;padding:10px;background:#0d1117;color:#f0f6fc;border:1px solid #30363d;border-radius:6px;font-size:14px;">
-                    <option value="quick">⚡ Hızlı Tarama (10 payload)</option>
+                    <option value="quick">⚡ Hızlı Tarama</option>
                     <option value="deep">🔍 Derin Parametre Testi</option>
-                    <option value="full">🚀 Full Test (Tüm Parametreler)</option>
-                    <option value="comprehensive">🔥 Kapsamlı Test (Max Güç)</option>
+                    <option value="full">🚀 Full Test</option>
+                    <option value="comprehensive">🔥 Kapsamlı Test</option>
                 </select>
             </div>
             
@@ -395,25 +395,16 @@
                     <label style="display:flex;align-items:center;gap:5px;">
                         <input type="checkbox" id="chkHidden" checked> Gizli Parametreler
                     </label>
-                    <label style="display:flex;align-items:center;gap:5px;">
-                        <input type="checkbox" id="chkAJAX"> AJAX Endpointleri
-                    </label>
-                    <label style="display:flex;align-items:center;gap:5px;">
-                        <input type="checkbox" id="chkLocalStorage"> Local Storage
-                    </label>
-                    <label style="display:flex;align-items:center;gap:5px;">
-                        <input type="checkbox" id="chkCookies"> Cookies
-                    </label>
                 </div>
             </div>
 
             <div style="margin-bottom:15px;">
                 <label style="display:block;margin-bottom:8px;color:#58a6ff;font-weight:bold;">Payload Sayısı:</label>
-                <input type="range" id="payloadCount" min="1" max="50" value="15" style="width:100%;">
+                <input type="range" id="payloadCount" min="1" max="20" value="10" style="width:100%;">
                 <div style="display:flex;justify-content:space-between;font-size:12px;color:#8b949e;">
                     <span>1</span>
-                    <span id="payloadCountValue">15 payload</span>
-                    <span>50</span>
+                    <span id="payloadCountValue">10 payload</span>
+                    <span>20</span>
                 </div>
             </div>
             
@@ -447,7 +438,7 @@
             </div>
             
             <div style="margin-top:15px;font-size:11px;color:#8b949e;text-align:center;border-top:1px solid #30363d;padding-top:10px;">
-                ⚡ ${xssPayloads.length}+ XSS Payload | 🛡️ NullSecurity Team | 🔍 Tüm Parametre Testi
+                ⚡ ${xssPayloads.length}+ XSS Payload | 🛡️ NullSecurity Team
             </div>
         `;
         
@@ -509,47 +500,33 @@
         
         // Form parametreleri
         const forms = document.forms;
-        Array.from(forms).forEach(form => {
+        for (let i = 0; i < forms.length; i++) {
+            const form = forms[i];
             const inputs = form.querySelectorAll('input[name], select[name], textarea[name]');
-            inputs.forEach(input => {
+            for (let j = 0; j < inputs.length; j++) {
+                const input = inputs[j];
                 if (input.name) parameters.add(input.name);
-            });
-        });
+            }
+        }
         
         // Hidden input'lar
         const hiddenInputs = document.querySelectorAll('input[type="hidden"][name]');
-        hiddenInputs.forEach(input => {
+        for (let i = 0; i < hiddenInputs.length; i++) {
+            const input = hiddenInputs[i];
             if (input.name) parameters.add(input.name);
-        });
-        
-        // Data attributes
-        const dataParams = document.querySelectorAll('[data-param], [data-name]');
-        dataParams.forEach(element => {
-            const param = element.getAttribute('data-param') || element.getAttribute('data-name');
-            if (param) parameters.add(param);
-        });
-        
-        // AJAX call'larından parametreleri bul
-        const scripts = document.scripts;
-        Array.from(scripts).forEach(script => {
-            const content = script.innerHTML;
-            const paramMatches = content.match(/(\?|&)([a-zA-Z0-9_]+)=/g) || [];
-            paramMatches.forEach(match => {
-                const param = match.replace(/[?&=]/g, '');
-                if (param) parameters.add(param);
-            });
-        });
+        }
         
         return Array.from(parameters);
     }
 
     // Parametre testi yap
-    async function testParameter(parameterName, originalValue = '') {
+    async function testParameter(parameterName) {
         const payloadCount = parseInt(document.getElementById('payloadCount').value);
         const testPayloads = getRandomPayloads(payloadCount);
         let isVulnerable = false;
         
-        for (const payload of testPayloads) {
+        for (let i = 0; i < testPayloads.length; i++) {
+            const payload = testPayloads[i];
             await new Promise(resolve => setTimeout(resolve, 50));
             
             try {
@@ -611,12 +588,95 @@
         });
     }
 
+    // Quick scan
+    async function quickScan() {
+        logResult('⚡ <strong>Hızlı Tarama Başlatıldı</strong>', 'info');
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramsArray = Array.from(urlParams.keys());
+        let tested = 0;
+        let vulnerable = 0;
+        
+        // İlk 5 parametreyi test et
+        const testParams = paramsArray.slice(0, 5);
+        
+        for (let i = 0; i < testParams.length; i++) {
+            const param = testParams[i];
+            tested++;
+            const isVuln = await testParameter(param);
+            if (isVuln) vulnerable++;
+        }
+        
+        logResult(`✅ Hızlı tarama tamamlandı: ${tested} parametre, ${vulnerable} zafiyet`, 
+                 vulnerable > 0 ? 'critical' : 'safe');
+        
+        showVulnerableLinks();
+    }
+
+    // Derin parametre testi
+    async function deepParameterTest() {
+        logResult('🔍 <strong>Derin Parametre Testi Başlatıldı</strong>', 'info');
+        
+        const allParameters = findAllParameters();
+        logResult(`📋 ${allParameters.length} parametre bulundu: <code>${allParameters.join(', ')}</code>`, 'info');
+        
+        let vulnerableCount = 0;
+        
+        // İstatistikleri göster
+        document.getElementById('scan-stats').style.display = 'block';
+        
+        for (let i = 0; i < allParameters.length; i++) {
+            const param = allParameters[i];
+            testedParameters.push(param);
+            const isVuln = await testParameter(param);
+            if (isVuln) vulnerableCount++;
+            
+            updateStats(i + 1, allParameters.length, vulnerableCount);
+        }
+        
+        logResult(`🎯 Test tamamlandı: ${allParameters.length} parametre, ${vulnerableCount} zafiyetli`, 
+                 vulnerableCount > 0 ? 'critical' : 'safe');
+        
+        showVulnerableLinks();
+    }
+
+    // Full test
+    async function fullTest() {
+        logResult('🚀 <strong>Full Test Başlatıldı</strong> - Tüm parametreler test ediliyor...', 'info');
+        
+        const allParameters = findAllParameters();
+        const payloadCount = parseInt(document.getElementById('payloadCount').value);
+        
+        logResult(`🎯 ${allParameters.length} parametre × ${payloadCount} payload = ${allParameters.length * payloadCount} test`, 'warning');
+        
+        let completed = 0;
+        let vulnerableCount = 0;
+        
+        // İstatistikleri göster
+        document.getElementById('scan-stats').style.display = 'block';
+        
+        for (let i = 0; i < allParameters.length; i++) {
+            const param = allParameters[i];
+            testedParameters.push(param);
+            const isVuln = await testParameter(param);
+            if (isVuln) vulnerableCount++;
+            
+            completed++;
+            updateStats(completed, allParameters.length, vulnerableCount);
+        }
+        
+        logResult(`✅ FULL TEST TAMAMLANDI: ${allParameters.length} parametre, ${vulnerableCount} zafiyet bulundu`, 
+                 vulnerableCount > 0 ? 'critical' : 'safe');
+        
+        showVulnerableLinks();
+    }
+
     // Kapsamlı test
     async function comprehensiveTest() {
         logResult('🔥 <strong>KAPSAMLI TEST BAŞLATILDI</strong> - Tüm parametreler × maksimum payload!', 'critical');
         
         const allParameters = findAllParameters();
-        const payloadCount = 50; // Maksimum
+        const payloadCount = 20; // Maksimum
         
         logResult(`🎯 ${allParameters.length} parametre × ${payloadCount} payload = ${allParameters.length * payloadCount} test yapılacak`, 'warning');
         
@@ -625,13 +685,37 @@
         
         // İstatistikleri göster
         document.getElementById('scan-stats').style.display = 'block';
-        updateStats(completed, allParameters.length, vulnerableCount);
         
-        for (const param of allParameters) {
+        for (let i = 0; i < allParameters.length; i++) {
+            const param = allParameters[i];
             testedParameters.push(param);
-            const isVuln = await testParameter(param);
-            if (isVuln) vulnerableCount++;
             
+            // Kapsamlı test için daha fazla payload kullan
+            const comprehensivePayloads = getRandomPayloads(payloadCount);
+            let isVuln = false;
+            
+            for (let j = 0; j < comprehensivePayloads.length; j++) {
+                const payload = comprehensivePayloads[j];
+                await new Promise(resolve => setTimeout(resolve, 30));
+                
+                const testUrl = new URL(window.location.href);
+                testUrl.searchParams.set(param, payload);
+                
+                const testResult = await executeTest(testUrl, param, payload);
+                if (testResult.vulnerable) {
+                    isVuln = true;
+                    vulnerableURLs.push({
+                        url: testUrl.toString(),
+                        parameter: param,
+                        payload: payload,
+                        type: testResult.type,
+                        risk: testResult.risk
+                    });
+                    break;
+                }
+            }
+            
+            if (isVuln) vulnerableCount++;
             completed++;
             updateStats(completed, allParameters.length, vulnerableCount);
         }
@@ -660,7 +744,8 @@
             const linksList = document.getElementById('vulnerable-links-list');
             linksList.innerHTML = '';
             
-            vulnerableURLs.forEach((vuln, index) => {
+            for (let i = 0; i < vulnerableURLs.length; i++) {
+                const vuln = vulnerableURLs[i];
                 const vulnDiv = document.createElement('div');
                 vulnDiv.style.cssText = `
                     background: #2d1a1a;
@@ -671,14 +756,14 @@
                     font-size: 11px;
                 `;
                 vulnDiv.innerHTML = `
-                    <strong>#${index + 1} - ${vuln.parameter}</strong> 
+                    <strong>#${i + 1} - ${vuln.parameter}</strong> 
                     <span style="color:#ffa198;font-size:10px;">[${vuln.risk}]</span><br>
                     🎯 <code>${vuln.payload.substring(0, 30)}...</code><br>
                     🔗 <a href="${vuln.url}" target="_blank" style="color:#58a6ff;word-break:break-all;">${vuln.url.substring(0, 70)}...</a>
                     <button onclick="copyToClipboard('${vuln.url}')" style="background:#1f6feb;color:white;border:none;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:10px;margin-left:5px;">Kopyala</button>
                 `;
                 linksList.appendChild(vulnDiv);
-            });
+            }
         }
     }
 
@@ -690,6 +775,15 @@
 
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
+            alert('URL panoya kopyalandı!');
+        }).catch(() => {
+            // Fallback için
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
             alert('URL panoya kopyalandı!');
         });
     }
@@ -714,9 +808,6 @@
         logResult('📊 Sonuçlar JSON olarak export edildi', 'info');
     }
 
-    // Diğer test fonksiyonları (quickScan, deepParameterTest, fullTest) önceki gibi kalacak
-    // Kısalık için buraya eklemiyorum, önceki versiyondan alabilirsiniz
-
     // Ana tarama fonksiyonu
     window.startAdvancedScan = function() {
         const testMode = document.getElementById('testMode').value;
@@ -730,7 +821,7 @@
 
         switch(testMode) {
             case 'quick':
-                if (confirm('⚡ Hızlı tarama başlatılsın mı? (10 payload)')) {
+                if (confirm('⚡ Hızlı tarama başlatılsın mı? (İlk 5 parametre)')) {
                     quickScan();
                 }
                 break;
@@ -740,19 +831,18 @@
                 }
                 break;
             case 'full':
-                if (confirm('🚀 FULL TEST başlatılsın mı?\n(Tüm parametreler × çoklu payload)')) {
+                if (confirm('🚀 FULL TEST başlatılsın mı?\n(Tüm parametreler × seçili payload sayısı)')) {
                     fullTest();
                 }
                 break;
             case 'comprehensive':
-                if (confirm('🔥 KAPSAMLI TEST başlatılsın mı?\n(Tüm parametreler × 50 payload)\n⚠️ Bu işlem biraz zaman alabilir!')) {
+                if (confirm('🔥 KAPSAMLI TEST başlatılsın mı?\n(Tüm parametreler × 20 payload)')) {
                     comprehensiveTest();
                 }
                 break;
         }
     };
 
-    // Diğer fonksiyonlar...
     window.clearResults = function() {
         document.getElementById('xss-results').innerHTML = '<p style="color:#8b949e;text-align:center;">🎯 Mod seçin ve taramayı başlatın</p>';
         document.getElementById('vulnerable-links').style.display = 'none';
@@ -770,12 +860,13 @@
     // Hızlı analiz
     setTimeout(() => {
         const allParams = findAllParameters();
+        const urlParams = new URLSearchParams(window.location.search);
         logResult(
             `📊 <strong>Hızlı Analiz:</strong><br>
-             🔗 URL Params: ${new URLSearchParams(window.location.search).size}<br>
+             🔗 URL Params: ${urlParams.size}<br>
              📝 Toplam Parametre: ${allParams.length}<br>
              ⚡ Payloadlar: ${xssPayloads.length} hazır<br>
-             🎯 <code>${allParams.slice(0, 5).join('</code>, <code>')}${allParams.length > 5 ? '...' : ''}</code>`,
+             🎯 Örnek parametreler: <code>${allParams.slice(0, 3).join('</code>, <code>')}${allParams.length > 3 ? '...' : ''}</code>`,
             'info'
         );
     }, 500);
