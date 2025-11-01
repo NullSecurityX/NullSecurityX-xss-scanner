@@ -1,417 +1,279 @@
-// scanner.js - NullSecurity XSS Scanner v4.0
-class XSSScanner {
-    constructor() {
-        this.version = '4.0';
-        this.payloads = this.getPayloads();
-        this.vulnerableURLs = [];
-        this.testedParameters = [];
-        this.workingPayloads = [];
-        this.init();
-    }
+// scanner.js - Advanced XSS Scanner
+(function() {
+    console.log('Advanced XSS Scanner loaded!');
+    
+    // XSS Test Payload'ları
+    const xssPayloads = [
+        '<script>alert("XSS")</script>',
+        '<img src=x onerror=alert("XSS")>',
+        '<svg onload=alert("XSS")>',
+        '" onmouseover="alert(\'XSS\')"',
+        'javascript:alert("XSS")',
+        '<body onload=alert("XSS")>',
+        '<iframe src="javascript:alert(\'XSS\')">',
+        '<input onfocus=alert("XSS") autofocus>',
+        '<details open ontoggle=alert("XSS")>',
+        '<video><source onerror=alert("XSS")>',
+        '<form><button formaction=javascript:alert("XSS")>',
+        '<math href="javascript:alert(\'XSS\')">CLICK',
+        '"><script>alert("XSS")</script>',
+        '"><img src=x onerror=alert("XSS")>',
+        '${alert("XSS")}',
+        '{{alert("XSS")}}',
+        '`${alert("XSS")}`'
+    ];
 
-    init() {
-        this.injectStyles();
-        this.createUI();
-        this.bindEvents();
-        console.log(`🛡️ NullSecurity XSS Scanner v${this.version} initialized`);
-    }
-
-    getPayloads() {
-        return [
-            // Basic Script Tags
-            '<script>alert(1)</script>',
-            '<script>alert(document.domain)</script>',
-            '<script>print()</script>',
-            
-            // IMG Tags with Events
-            '<img src=x onerror=alert(1)>',
-            '<img src=x onerror=alert(document.cookie)>',
-            '<img src=x onload=alert(1)>',
-            '<img src=x onmouseover=alert(1)>',
-            
-            // SVG Vectors
-            '<svg onload=alert(1)>',
-            '<svg onload=alert(document.domain)>',
-            
-            // Body Events
-            '<body onload=alert(1)>',
-            '<body onpageshow=alert(1)>',
-            
-            // Iframe Vectors
-            '<iframe src="javascript:alert(1)">',
-            '<iframe onload=alert(1)>',
-            
-            // Input/Button Events
-            '<input onfocus=alert(1) autofocus>',
-            '<button onfocus=alert(1) autofocus>',
-            
-            // Form Events
-            '<form onsubmit=alert(1)><input type=submit>',
-            '<form><button formaction=javascript:alert(1)>click</button>',
-            
-            // JavaScript URIs
-            'javascript:alert(1)',
-            'javascript:alert(document.domain)',
-            
-            // Event Handlers in Attributes
-            '" onmouseover="alert(1)',
-            '" onfocus="alert(1)" autofocus="',
-            
-            // Template Literals
-            '${alert(1)}',
-            '`${alert(1)}`',
-            
-            // Encoding Bypasses
-            '<script>alert&#40;1&#41;</script>',
-            '<script>alert&#x28;1&#x29;</script>',
-            
-            // Case Variations
-            '<ScRiPt>alert(1)</sCrIpT>',
-            '<IMG SRC=x ONERROR=alert(1)>'
-        ];
-    }
-
-    injectStyles() {
-        const style = document.createElement('style');
-        style.id = 'xss-scanner-styles';
-        style.textContent = `
-            .xss-scanner {
-                position: fixed !important;
-                top: 20px !important;
-                right: 20px !important;
-                width: 700px !important;
-                background: #1a1a1a !important;
-                color: white !important;
-                padding: 20px !important;
-                border-radius: 10px !important;
-                z-index: 10000 !important;
-                font-family: Arial, sans-serif !important;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
-                max-height: 80vh !important;
-                overflow-y: auto !important;
-                border: 2px solid #ff6b6b !important;
-            }
-
-            .scanner-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-                border-bottom: 2px solid #ff6b6b;
-            }
-
-            .scanner-title {
-                margin: 0;
-                color: #ff6b6b;
-                font-size: 20px;
-                font-weight: bold;
-            }
-
-            .close-btn {
-                background: #ff6b6b;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 5px;
-                cursor: pointer;
-                font-size: 16px;
-            }
-
-            .scanner-section {
-                background: #2d2d2d;
-                padding: 15px;
-                border-radius: 8px;
-                margin-bottom: 15px;
-            }
-
-            .section-label {
-                display: block;
-                color: #58a6ff;
-                font-weight: bold;
-                margin-bottom: 8px;
-                font-size: 14px;
-            }
-
-            .scanner-select {
-                width: 100%;
-                padding: 10px;
-                background: #1a1a1a;
-                color: white;
-                border: 1px solid #555;
-                border-radius: 5px;
-                font-size: 14px;
-            }
-
-            .options-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-                margin-top: 10px;
-            }
-
-            .option-label {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-size: 14px;
-            }
-
-            .slider-container {
-                margin: 15px 0;
-            }
-
-            .payload-slider {
-                width: 100%;
-                margin: 10px 0;
-            }
-
-            .slider-labels {
-                display: flex;
-                justify-content: space-between;
-                font-size: 12px;
-                color: #ccc;
-            }
-
-            .results-area {
-                background: #2d2d2d;
-                padding: 15px;
-                border-radius: 8px;
-                margin: 15px 0;
-                min-height: 200px;
-                max-height: 300px;
-                overflow-y: auto;
-            }
-
-            .action-buttons {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-            }
-
-            .scan-btn {
-                background: #4CAF50;
-                color: white;
-                border: none;
-                padding: 12px 20px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: bold;
-                font-size: 14px;
-                flex: 1;
-            }
-
-            .clear-btn {
-                background: #ff6b6b;
-                color: white;
-                border: none;
-                padding: 12px 20px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: bold;
-                font-size: 14px;
-            }
-
-            .result-item {
-                background: #3d3d3d;
-                padding: 12px;
-                margin: 8px 0;
-                border-radius: 6px;
-                border-left: 4px solid #58a6ff;
-                font-size: 13px;
-            }
-
-            .result-critical {
-                border-left-color: #ff6b6b;
-                background: #4a2d2d;
-            }
-
-            .result-safe {
-                border-left-color: #4CAF50;
-                background: #2d4a2d;
-            }
-
-            .code {
-                background: #1a1a1a;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-family: monospace;
-                color: #fff;
-                border: 1px solid #555;
-                font-size: 12px;
-            }
-
-            .scanner-footer {
-                margin-top: 15px;
-                text-align: center;
-                color: #ccc;
-                font-size: 12px;
-            }
+    // UI oluştur
+    function createUI() {
+        const panel = document.createElement('div');
+        panel.id = 'xss-scanner-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 500px;
+            background: #1a1a1a;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            max-height: 80vh;
+            overflow-y: auto;
         `;
-        document.head.appendChild(style);
-    }
-
-    createUI() {
-        this.panel = document.createElement('div');
-        this.panel.className = 'xss-scanner';
-        this.panel.id = 'xss-scanner-panel';
         
-        this.panel.innerHTML = this.getUITemplate();
-        document.body.appendChild(this.panel);
-    }
-
-    getUITemplate() {
-        return `
-            <div class="scanner-header">
-                <h2 class="scanner-title">🛡️ XSS Scanner v${this.version}</h2>
-                <button class="close-btn" id="closeBtn">✕</button>
+        panel.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:1px solid #444;padding-bottom:10px;">
+                <h3 style="margin:0;color:#ff6b6b;">🔍 Advanced XSS Scanner</h3>
+                <button onclick="document.getElementById('xss-scanner-panel').remove()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;">×</button>
             </div>
-
-            <div class="scanner-section">
-                <label class="section-label">Tarama Modu</label>
-                <select class="scanner-select" id="scanMode">
-                    <option value="quick">⚡ Hızlı Tarama</option>
-                    <option value="deep">🔍 Derin Tarama</option>
-                    <option value="full">🚀 Tam Tarama</option>
+            
+            <div style="margin-bottom:15px;">
+                <label style="display:block;margin-bottom:5px;">Test Modu:</label>
+                <select id="testMode" style="width:100%;padding:5px;background:#333;color:white;border:1px solid #555;">
+                    <option value="passive">Pasif Tarama (Güvenli)</option>
+                    <option value="active">Aktif Test (Dikkatli kullanın!)</option>
                 </select>
             </div>
-
-            <div class="scanner-section">
-                <label class="section-label">Tarama Seçenekleri</label>
-                <div class="options-grid">
-                    <label class="option-label">
-                        <input type="checkbox" id="urlParams" checked>
-                        URL Parametreleri
-                    </label>
-                    <label class="option-label">
-                        <input type="checkbox" id="forms" checked>
-                        Formlar
-                    </label>
-                    <label class="option-label">
-                        <input type="checkbox" id="hiddenParams">
-                        Gizli Parametreler
-                    </label>
-                    <label class="option-label">
-                        <input type="checkbox" id="cookies">
-                        Çerezler
-                    </label>
-                </div>
+            
+            <div id="xss-results" style="margin:10px 0;font-size:12px;">
+                <p>Select mode and click "Start Scan"</p>
             </div>
-
-            <div class="scanner-section">
-                <label class="section-label">Payload Sayısı</label>
-                <div class="slider-container">
-                    <input type="range" class="payload-slider" id="payloadCount" min="1" max="20" value="10">
-                    <div class="slider-labels">
-                        <span>1</span>
-                        <span id="payloadCountValue">10 payload</span>
-                        <span>20</span>
-                    </div>
-                </div>
+            
+            <div style="margin-top:15px;display:flex;gap:10px;">
+                <button onclick="startAdvancedScan()" style="background:#4CAF50;color:white;border:none;padding:8px 15px;border-radius:5px;cursor:pointer;flex:1;">Start Scan</button>
+                <button onclick="clearResults()" style="background:#ff9800;color:white;border:none;padding:8px 15px;border-radius:5px;cursor:pointer;">Clear</button>
             </div>
-
-            <div class="results-area" id="results">
-                <p style="text-align: center; color: #888;">Mod seçin ve taramayı başlatın</p>
-            </div>
-
-            <div class="action-buttons">
-                <button class="scan-btn" id="startScan">🚀 Taramayı Başlat</button>
-                <button class="clear-btn" id="clearResults">🗑️ Temizle</button>
-            </div>
-
-            <div class="scanner-footer">
-                ⚡ ${this.payloads.length} XSS Payload | 🛡️ NullSecurity Team
+            
+            <div style="margin-top:10px;font-size:11px;color:#888;">
+                ⚠️ Active mode dikkatle kullanın - gerçek payload'lar gönderir
             </div>
         `;
-    }
-
-    bindEvents() {
-        document.getElementById('closeBtn').addEventListener('click', () => {
-            this.destroy();
-        });
-
-        document.getElementById('payloadCount').addEventListener('input', (e) => {
-            document.getElementById('payloadCountValue').textContent = 
-                `${e.target.value} payload`;
-        });
-
-        document.getElementById('startScan').addEventListener('click', () => {
-            this.startScan();
-        });
-
-        document.getElementById('clearResults').addEventListener('click', () => {
-            this.clearResults();
-        });
-    }
-
-    startScan() {
-        const mode = document.getElementById('scanMode').value;
-        const payloadCount = parseInt(document.getElementById('payloadCount').value);
         
-        this.clearResults();
-        this.logResult(`⚡ <strong>${this.getModeName(mode)} başlatıldı</strong>`, 'info');
-        this.logResult(`🔧 ${payloadCount} payload ile test ediliyor...`, 'info');
+        document.body.appendChild(panel);
+    }
+    
+    // Sonuçları logla
+    function logResult(message, type = 'info') {
+        const colors = {
+            'critical': '#ff4757',
+            'high': '#ff6b6b',
+            'medium': '#ffa502', 
+            'low': '#fffa65',
+            'info': '#70a1ff',
+            'safe': '#2ed573'
+        };
+        
+        const resultDiv = document.createElement('div');
+        resultDiv.style.cssText = `
+            background: #2d2d2d;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid ${colors[type]};
+            font-size: 12px;
+        `;
+        resultDiv.innerHTML = message;
+        document.getElementById('xss-results').appendChild(resultDiv);
+    }
 
-        // Simüle edilmiş tarama işlemi
+    // Pasif tarama - sadece analiz
+    function passiveScan() {
+        logResult('🔍 <strong>Pasif Tarama Başladı</strong>', 'info');
+        
+        // URL parametre analizi
+        const urlParams = new URLSearchParams(window.location.search);
+        let suspiciousParams = [];
+        
+        urlParams.forEach((value, key) => {
+            xssPayloads.forEach(payload => {
+                if (value.includes(payload.substring(0, 10)) || 
+                    key.includes(payload.substring(0, 10))) {
+                    suspiciousParams.push({key, value, payload});
+                }
+            });
+        });
+        
+        if (suspiciousParams.length > 0) {
+            suspiciousParams.forEach(param => {
+                logResult(
+                    `🚨 <strong>Şüpheli URL Parametresi</strong><br>
+                     Parametre: <code>${param.key}</code><br>
+                     Değer: <code>${param.value}</code><br>
+                     Benzer Payload: <code>${param.payload}</code>`,
+                    'high'
+                );
+            });
+        } else {
+            logResult(`✅ ${urlParams.size} URL parametresi tarandı - şüpheli içerik bulunamadı`, 'safe');
+        }
+        
+        // Form analizi
+        const forms = document.getElementsByTagName('form');
+        logResult(`📝 ${forms.length} form bulundu`, 'info');
+        
+        Array.from(forms).forEach((form, index) => {
+            const inputs = form.querySelectorAll('input, textarea, select');
+            let formInfo = `Form ${index + 1}: `;
+            let inputTypes = [];
+            
+            inputs.forEach(input => {
+                inputTypes.push(input.type || input.tagName.toLowerCase());
+            });
+            
+            logResult(`Form ${index + 1}: ${inputs.length} input (${inputTypes.join(', ')})`, 'low');
+        });
+        
+        // DOM XSS pattern'leri
+        const dangerousPatterns = [
+            { pattern: /innerHTML\s*=[^=]/, name: 'innerHTML assignment', risk: 'high' },
+            { pattern: /outerHTML\s*=[^=]/, name: 'outerHTML assignment', risk: 'high' },
+            { pattern: /document\.write\([^)]/, name: 'document.write', risk: 'high' },
+            { pattern: /eval\s*\([^)]/, name: 'eval function', risk: 'critical' },
+            { pattern: /setTimeout\s*\([^,]*\)/, name: 'setTimeout with string', risk: 'medium' },
+            { pattern: /setInterval\s*\([^,]*\)/, name: 'setInterval with string', risk: 'medium' },
+            { pattern: /\.src\s*=[^=]javascript:/, name: 'javascript: src', risk: 'high' }
+        ];
+        
+        const scripts = document.getElementsByTagName('script');
+        let foundPatterns = [];
+        
+        Array.from(scripts).forEach((script, index) => {
+            const content = script.innerHTML;
+            dangerousPatterns.forEach(pattern => {
+                if (pattern.pattern.test(content)) {
+                    foundPatterns.push({
+                        pattern: pattern.name,
+                        risk: pattern.risk,
+                        script: index + 1
+                    });
+                }
+            });
+        });
+        
+        if (foundPatterns.length > 0) {
+            foundPatterns.forEach(found => {
+                logResult(
+                    `⚠️ <strong>DOM XSS Pattern Bulundu</strong><br>
+                     Pattern: ${found.pattern}<br>
+                     Risk: ${found.risk.toUpperCase()}<br>
+                     Script: #${found.script}`,
+                    found.risk
+                );
+            });
+        } else {
+            logResult('✅ Tehlikeli DOM patternleri bulunamadı', 'safe');
+        }
+    }
+
+    // Aktif tarama - gerçek testler
+    async function activeScan() {
+        logResult('⚡ <strong>Aktif Test Başladı - DİKKAT!</strong>', 'critical');
+        
+        // Form testleri
+        const forms = document.getElementsByTagName('form');
+        let testedForms = 0;
+        
+        Array.from(forms).forEach((form, formIndex) => {
+            const inputs = form.querySelectorAll('input[type="text"], input[type="search"], textarea');
+            
+            if (inputs.length > 0) {
+                testedForms++;
+                logResult(`Testing form ${formIndex + 1} with ${inputs.length} inputs`, 'medium');
+                
+                // Basit bir test payload'ı ekle
+                inputs.forEach((input, inputIndex) => {
+                    const originalValue = input.value;
+                    input.value = `"><img src=x onerror=console.log('XSS_Test_${formIndex}_${inputIndex}')>`;
+                    logResult(`Input ${inputIndex + 1} filled with test payload`, 'low');
+                    
+                    // 2 saniye sonra eski haline getir
+                    setTimeout(() => {
+                        input.value = originalValue;
+                    }, 2000);
+                });
+            }
+        });
+        
+        if (testedForms === 0) {
+            logResult('❌ Test edilebilir form bulunamadı', 'info');
+        }
+        
+        // URL testi - yeni pencere aç
         setTimeout(() => {
-            this.simulateScanResults(mode);
+            logResult('🔗 URL testleri yapılıyor...', 'info');
+            
+            const currentUrl = new URL(window.location.href);
+            const testPayload = '<img src=x onerror=console.log("XSS_URL_Test")>';
+            
+            // URL'ye test parametresi ekle
+            currentUrl.searchParams.set('testxss', testPayload);
+            
+            logResult(
+                `Test URL: <code>${currentUrl.toString().substring(0, 100)}...</code><br>
+                <button onclick="window.open('${currentUrl.toString()}', '_blank')" 
+                 style="background:#ff4757;color:white;border:none;padding:5px;border-radius:3px;cursor:pointer;margin-top:5px;">
+                 Test URL'sini Aç</button>`,
+                'high'
+            );
         }, 1000);
     }
 
-    getModeName(mode) {
-        const modes = {
-            'quick': 'Hızlı Tarama',
-            'deep': 'Derin Tarama', 
-            'full': 'Tam Tarama'
-        };
-        return modes[mode] || mode;
-    }
-
-    simulateScanResults(mode) {
-        const randomVulns = Math.floor(Math.random() * 3);
+    // Ana tarama fonksiyonu
+    window.startAdvancedScan = function() {
+        const testMode = document.getElementById('testMode').value;
+        const results = document.getElementById('xss-results');
+        results.innerHTML = '';
         
-        if (randomVulns > 0) {
-            this.logResult(`🚨 <strong>${randomVulns} zafiyet bulundu!</strong>`, 'critical');
-            
-            for (let i = 0; i < randomVulns; i++) {
-                this.logResult(
-                    `📍 Parametre: <code class="code">test_param_${i}</code><br>
-                     🎯 Payload: <code class="code">${this.payloads[i]}</code><br>
-                     🔗 <a href="#" style="color: #58a6ff;">Test URL'si</a>`,
-                    'critical'
-                );
-            }
+        if (testMode === 'passive') {
+            passiveScan();
         } else {
-            this.logResult('✅ <strong>Zafiyet bulunamadı</strong>', 'safe');
+            if (confirm('⚠️ AKTİF TEST MODU!\n\nBu mod gerçek XSS payloadları gönderir. Sadece test etme izniniz olan sitelerde kullanın.\n\nDevam edilsin mi?')) {
+                activeScan();
+            }
         }
-
-        this.logResult('📊 <strong>Tarama tamamlandı</strong>', 'info');
-    }
-
-    logResult(message, type = 'info') {
-        const results = document.getElementById('results');
-        const div = document.createElement('div');
-        div.className = `result-item ${type === 'critical' ? 'result-critical' : ''} ${type === 'safe' ? 'result-safe' : ''}`;
-        div.innerHTML = message;
-        results.appendChild(div);
-        div.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    clearResults() {
-        document.getElementById('results').innerHTML = 
-            '<p style="text-align: center; color: #888;">Mod seçin ve taramayı başlatın</p>';
-    }
-
-    destroy() {
-        if (this.panel) {
-            this.panel.remove();
-        }
-        const styles = document.getElementById('xss-scanner-styles');
-        if (styles) {
-            styles.remove();
-        }
-    }
-}
-
-// Scanner'ı başlat
-new XSSScanner();
+    };
+    
+    window.clearResults = function() {
+        document.getElementById('xss-results').innerHTML = '<p>Select mode and click "Start Scan"</p>';
+    };
+    
+    // UI'yı başlat
+    createUI();
+    
+    // Mevcut sayfayı hızlı analiz et
+    setTimeout(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const forms = document.getElementsByTagName('form').length;
+        
+        logResult(
+            `📊 <strong>Hızlı Analiz:</strong><br>
+             URL Parametreleri: ${urlParams.size}<br>
+             Formlar: ${forms}<br>
+             Scriptler: ${document.scripts.length}`,
+            'info'
+        );
+    }, 100);
+    
+})();
